@@ -1,0 +1,56 @@
+KNOWN-FALSE-POSITIVE CONTEXT
+Source: analyze_signins.py run on 1,096 real Azure AD sign-ins, test tenant
+Updated with real device-user map from Azure AD export, 2026-07-16 to 2026-07-23
+
+BASELINE
+- Total sign-ins analyzed: 1,096
+- Flagged by naive "unmanaged device" rule: 1,070 (97.6%)
+- Auto-dismissed after device-history check: 1,066 (99.6% of flagged)
+- Escalated as genuinely first-seen devices: 4 (0.4% of flagged)
+- This means: an unmanaged-device flag alone is almost never the real signal.
+  The signal is whether THIS device has been seen for THIS user before.
+
+RULE
+- If (user, device) pair has signed in before -> DISMISS
+- If device is first-seen for that user -> ESCALATE, do not auto-dismiss
+- If device name is missing/unnamed -> treat as first-seen, ESCALATE
+  (an unnamed device cannot be matched against history, so it can't be
+  confirmed known — this is a "low confidence" case by definition)
+- If a device ID is known, but known for a DIFFERENT user than the one
+  signing in now -> this is NOT a "seen before" match. A device being
+  known is not the same as a device being known FOR THIS USER. Treat
+  cross-user device reuse as its own case, route to ESCALATE / low
+  confidence, never auto-dismiss on device recognition alone.
+
+CONFIRMED ESCALATED CASES FROM ORIGINAL RUN (first-seen devices, correctly NOT dismissed)
+2026-07-10T11:00:05Z | Paul Fakunle | DESKTOP-JB5N95H | Windows10
+2026-07-14T05:48:48Z | Faith Amanze  | (unnamed)        | Windows10
+2026-07-14T08:04:57Z | Poxibl        | (unnamed)        | Linux
+2026-07-14T08:07:33Z | Poxibl        | WinSpire         | Windows10
+
+NOTE ON "Poxibl": same user, two different devices within 3 minutes,
+one unnamed. This is the kind of case that should stay ESCALATE even
+if one of the two devices looks otherwise plausible — velocity/pattern
+context isn't something this static file can judge, a human should.
+
+KNOWN DEVICE/USER PAIRS (from live Azure AD export, 2026-07-16 to 2026-07-23)
+- Paul Fakunle -> device 1aa6b986-f806-4047-8ad8-fd33f4eeaf3f, consistently
+  from IP 102.88.55.131, Lagos, Lagos, NG. Stable pattern across many
+  sign-ins in this window -> textbook DISMISS case.
+- Poxibl (user2@[redacted-tenant]) -> device ae7d8793-a3c7-43f9-8bb6-a97991fc86bf,
+  Lagos, Lagos, NG.
+- Faith Amanze -> ALSO signs in from device ae7d8793-a3c7-43f9-8bb6-a97991fc86bf,
+  the SAME device ID as Poxibl. This is unusual and not a simple known-device
+  match — see cross-user device reuse rule above.
+- Faith Amanze also has sign-ins with no device ID recorded at all
+  (non-interactive / service-style sign-ins) -> treat as unnamed/first-seen
+  per the rule above.
+
+KNOWN ANOMALY: IMPOSSIBLE TRAVEL (not catchable by per-alert rules)
+Faith Amanze signed in from Lagos, Lagos, NG at 2026-07-23T06:30:22Z and from
+Kachia, Kaduna, NG at 2026-07-23T06:28:27Z — roughly 2 minutes apart, ~380km
+apart. Neither sign-in looks suspicious in isolation; only the pair does.
+This pipeline evaluates one alert at a time and has no memory of prior
+alerts, so it cannot catch this pattern. Flagging this here as a known,
+named limitation of the current design, not something to "fix" by prompting
+harder — it needs a stateful/session-aware check that this project doesn't do.
