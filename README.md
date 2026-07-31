@@ -149,10 +149,8 @@ The notebook asks two separate questions rather than one, because they aren't th
 
 1. **No memory across alerts.** The pipeline judges one sign-in event at a time. It structurally cannot catch the same user signing in from two distant locations minutes apart — only visible across alerts, not within one. Named in `Knowledge.txt`, `BUILD_LOG.md`, and scheduled as the next piece of work (stateful/session-aware check).
 2. **Confidence gate is built but rarely exercised.** The model returns `high` confidence on nearly every real event so far, including genuinely ambiguous ones. The gate has been proven to fire correctly, but only on a deliberately constructed edge case (see live demo), not yet on organic production-shaped data.
-3. **Eval scale is small (N=5 real sessions).** See above — a method check, not a performance claim, until re-run against the full tenant export.
-4. **No cheap substitute found (yet) for device-history checking.** History-independent signals (risk level, auth success, time of day) performed worse than a trivial guess in the one real test available. IP reputation, geovelocity, or a real ML-based risk score would be needed before that check could be safely loosened.
-5. **Accessibility score 89/100** on both mobile and desktop (PageSpeed Insights) for the live site — consistent, real, not yet fixed.
-6. **LinkedIn link and full mobile/cross-browser rendering** on the live site have not been independently, manually verified.
+3. **Eval scale is small (N=5 real sessions), and within that limited test, no cheap substitute was found for device-history checking.** The Week 5 comparison is a method check, not a performance claim, until re-run against the full tenant export. History-independent signals (risk level, auth success, time of day) performed worse than a trivial guess in the one real test available — IP reputation, geovelocity, or a real ML-based risk score would be needed before the history check could be safely loosened.
+4. **Live-site polish not yet independently verified.** Accessibility sits at 89/100 on both mobile and desktop (PageSpeed Insights, real and consistent, not yet fixed), and the LinkedIn link plus full mobile/cross-browser rendering haven't been manually confirmed.
 
 ---
 
