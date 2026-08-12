@@ -42,11 +42,13 @@ def load_events():
 def build_history_groups(events):
     """
     Sort events by time, then for each (user, device_id) pair, mark the first
-    occurrence as 'first-seen' and everything after as 'known'. Returns the
-    events in chronological order, each annotated with its history context.
+    occurrence as 'first-seen' and everything after as 'known'. Events with no
+    device_id can never be confirmed as a repeat of a prior device, so they are
+    ALWAYS treated as first-seen, not just the first time they occur.
     """
     def device_id(e):
-        return (e.get("deviceDetail") or {}).get("deviceId") or "(no-device-id)"
+        raw = (e.get("deviceDetail") or {}).get("deviceId")
+        return raw if raw else None  # treat empty string the same as missing
 
     events_sorted = sorted(events, key=lambda e: e.get("createdDateTime", ""))
 
@@ -60,20 +62,21 @@ def build_history_groups(events):
         key = (user, dev)
 
         prior_devices = sorted(user_devices.get(user, set()))
-        is_first_seen = key not in seen_pairs
+        is_first_seen = (dev is None) or (key not in seen_pairs)
 
         annotated.append({
             "event": e,
             "user": user,
-            "device_id": dev,
+            "device_id": dev if dev is not None else "(no-device-id)",
             "device_name": (e.get("deviceDetail") or {}).get("displayName", ""),
             "timestamp": e.get("createdDateTime", ""),
             "is_first_seen": is_first_seen,
             "prior_devices_for_user": prior_devices,
         })
 
-        seen_pairs[key] = e.get("createdDateTime")
-        user_devices.setdefault(user, set()).add(dev)
+        if dev is not None:
+            seen_pairs[key] = e.get("createdDateTime")
+            user_devices.setdefault(user, set()).add(dev)
 
     return annotated
 
@@ -168,6 +171,18 @@ def main():
         if i > 0:
             time.sleep(1.5)  # stay comfortably under Groq's free-tier 30 requests/minute limit
         decision, reasoning, confidence = classify_event(api_key, template, item)
+
+        # Confidence gate (Checkpoint 3): the LLM's own confidence field was returned but
+        # never used to gate anything. If it says dismiss without high confidence, that's
+        # not a trustworthy auto-dismiss -- escalate instead, but keep the original
+        # reasoning visible rather than overwrite it.
+        if decision == "dismiss" and confidence.lower() != "high":
+            reasoning = (
+                f"CONFIDENCE GATE: LLM confidence was \'{confidence}\', not high, so "
+                f"overriding dismiss -> escalate. Original reasoning: {reasoning}"
+            )
+            decision = "escalate"
+
         write_log_row(item["user"], item["device_id"], item["device_name"], decision, reasoning, confidence)
 
         if decision == "dismiss":
