@@ -98,3 +98,17 @@ Confirmed via direct CSV grep that every no-device-id row now escalates, with ze
 cases — flagging this as unreliable/unused rather than trustworthy, same known-limitation
 bucket as before.
 
+### 6. Confidence re-verified on clean run, 2026-08-14
+
+- Re-ran the 22-event set clean (deleted `triage_log.csv`, fresh run) to check whether the
+  confidence field discriminates on real data, not just the hand-built edge cases used to
+  validate the confidence gate itself.
+- Result unchanged: 7 dismissed / 15 escalated, confirming the section-4 fix still holds on
+  a genuinely clean run.
+- Confidence field: uniformly "high" across all 22 rows, including first-seen/unnamed-device
+  escalations that would reasonably be considered lower-confidence cases.
+- Conclusion: the confidence gate is real, live code, and has been proven to fire correctly
+  on hand-built edge cases (see the probe in `src/dev-notes/`). It has not yet been observed
+  discriminating on real sign-in data — every real row so far has returned "high." Site copy
+  updated to state this precisely rather than imply it's been demonstrated on live data.
+
