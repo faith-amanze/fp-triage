@@ -167,3 +167,8 @@ rule was derived from real data first (what does 97.6%-flagged-but-99.6%-safe-to
 actually mean for a queue), the LLM's job is narrowly to apply that rule with a legible,
 per-event reason, and every bug found along the way was found by checking the code's actual
 output against that rule — not assumed away.
+
+> **Repo scope:** this repo holds the agent, the real data, and the honest build log —
+> the evidence trail behind the claims on the live site. The deployed site itself
+> (HTML, styling, and the `/Try It` Netlify function) lives in a separate repo:
+> [fp-triage-site](https://github.com/faith-amanze/fp-triage-site).
