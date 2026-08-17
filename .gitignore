@@ -3,3 +3,6 @@ api_key.txt
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
+src/signins.json
+src/triage_log.csv
+work/data/InteractiveSignIns_*.json
