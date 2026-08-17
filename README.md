@@ -128,3 +128,13 @@ The interesting part of this project isn't "an LLM classifies sign-ins." It's th
 ---
 
 **Live demo & case study:** [faith-amanze.netlify.app](https://faith-amanze.netlify.app) — the deployed site (HTML, styling, and the "Try It" Netlify function) lives in a separate repo: [fp-triage-site](https://github.com/faith-amanze/fp-triage-site).
+
+## AI Involvement
+
+This project was built with Claude as a working partner, not a code generator accepted blindly. Specifically:
+
+- **Debugging the Groq migration and the device-ID caching bug** — Claude helped diagnose both (the Cloudflare User-Agent block, and the `"(no-device-id)"` string being cached as a real device), but every fix was verified by rerunning the script and checking the actual CSV output against the stated rule, not by trusting the explanation.
+- **The redaction tooling** (`redact_signins.py`, the `git filter-repo` history scrub) — Claude wrote the first version, which had a real gap (missed the `signInIdentifier` field, then missed three more files still leaking real data after the first "fix"). Each pass was checked by independently re-cloning the public repo and searching for the actual leaked strings, not by trusting that the fix worked.
+- **Design decisions** — Claude built a more elaborate wordmark treatment (a reticle motif built into the letter *i*) that technically worked but added complexity the live site didn't need. It got reverted in favor of the simpler mark already shipping.
+
+Every claim in this README — the eval numbers, the "repo matches the live site" claim, the "no real data exposed" claim — was independently re-verified, not taken on Claude's word.
